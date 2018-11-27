@@ -1,9 +1,10 @@
 from enum import IntEnum
 
+
 class LineParts(IntEnum):
-    TIME    = 0
-    CHAN_A  = 1
-    CHAN_B  = 2
+    TIME = 0
+    CHAN_A = 1
+    CHAN_B = 2
 
 
 class P2Point:
