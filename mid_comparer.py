@@ -21,7 +21,7 @@ for folder in data_folders:
     files_in_folder.append(glob.glob(folder + '/*.txt'))
 
 # Parse them
-print('Parsing data files')
+print('Parsing data files...')
 
 chan1_data = []
 chan2_data = []
@@ -53,7 +53,7 @@ for folder_num in range(0, len(data_folders)):
 
         opened_file.close()
 
-print("Parsing completed. Finding deltas of bases...")
+print("Parsing completed. Finding deltas of mids...")
 
 avg_deltas = []
 deltas_stdevs = []
@@ -78,24 +78,23 @@ for folder_num in range(0, len(chan1_data)):
             if float(chan2_data[folder_num][point_set_num][point_number].chan) > float(peak2_point.chan):
                 peak2_point = chan2_data[folder_num][point_set_num][point_number]
 
-        # Get the bases, assuming that they would be first points with value >= of 0.25 of peak_point.
-        # 0.25 was selected empirically to remove most of the noise.
+        # Get the middles, that would be first points with value >= of half peak_point
 
-        base1_point = chan1_data[folder_num][point_set_num][0]
-        base2_point = chan2_data[folder_num][point_set_num][0]
+        mid1_point = chan1_data[folder_num][point_set_num][0]
+        mid2_point = chan2_data[folder_num][point_set_num][0]
 
         for point_number in range(0, len(chan1_data[folder_num][point_set_num])):
-            if float(chan1_data[folder_num][point_set_num][point_number].chan) >= 0.25 * float(peak1_point.chan):
-                base1_point = chan1_data[folder_num][point_set_num][point_number]
+            if float(chan1_data[folder_num][point_set_num][point_number].chan) >= 0.5 * float(peak1_point.chan):
+                mid1_point = chan1_data[folder_num][point_set_num][point_number]
                 break
 
         for point_number in range(0, len(chan2_data[folder_num][point_set_num])):
-            if float(chan2_data[folder_num][point_set_num][point_number].chan) >= 0.25 * float(peak2_point.chan):
-                base2_point = chan1_data[folder_num][point_set_num][point_number]
+            if float(chan2_data[folder_num][point_set_num][point_number].chan) >= 0.5 * float(peak2_point.chan):
+                mid2_point = chan1_data[folder_num][point_set_num][point_number]
                 break
 
         # Count delta time
-        deltas.append(time_unit_scale * (float(base2_point.time) - float(base1_point.time)))
+        deltas.append(time_unit_scale * (float(mid2_point.time) - float(mid1_point.time)))
 
     avg_deltas.append(sum(deltas) / len(deltas))
     print(f'delta = {avg_deltas[len(avg_deltas) -1]}')

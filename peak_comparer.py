@@ -2,13 +2,15 @@ from PointData import P2Point, LineParts
 import os
 import glob
 from math import sqrt
+import matplotlib.pyplot as plt
 
 
 def st_dev(data):
     avg_data = sum(data) / len(data)
-    stdev = sum([(x - avg_data)**2 for x in data])
-    stdev /= len(data) - 1
-    return sqrt(stdev)
+    stDev = sum([(x - avg_data)**2 for x in data])
+    stDev /= len(data) - 1
+    return sqrt(stDev)
+
 
 # Get to the files
 script_path = os.path.join(os.path.dirname(__file__), "TR")
@@ -18,16 +20,15 @@ files_in_folder = []
 for folder in data_folders:
     files_in_folder.append(glob.glob(folder + '/*.txt'))
 
-
 # Parse them
-print('Parsing data files')
+print('Parsing data files...')
 
 chan1_data = []
 chan2_data = []
 time_unit_scale = 1
 
 for folder_num in range(0, len(data_folders)):
-#for folder_num in range(0, 1):
+# for folder_num in range(0, 1):
 
     print(data_folders[folder_num])
 
@@ -121,15 +122,23 @@ for folder_num in range(0, len(chan1_data)):
     plot_dict[V].append(vs[folder_num])
 
 
+x = []
+y = []
+
 print('Averaging values in dict...')
 for val_list in plot_dict:
     plot_dict[val_list] = sum(plot_dict[val_list]) / len(plot_dict[val_list])
+    # It's U in volts divided by 10 cm = 1e-2 m, which is the length of area with homogeneous electric field.
+    x.append((val_list / 1e-2))
+    # Velocity is not in cm / us thus it should be rescaled by 1e-2 / 1e-6 = 1e4
+    y.append(plot_dict[val_list] * 1e4)
 
 print(plot_dict)
 
-
-
-
+plt.plot(x, y, 'ro')
+plt.ylabel('v (m / s)')
+plt.xlabel('E (V / m)')
+plt.show()
 
 
 
