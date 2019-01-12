@@ -1,6 +1,7 @@
 from PointData import P2Point, LineParts
 import os
 import glob
+import numpy as np
 from math import sqrt
 import matplotlib.pyplot as plt
 
@@ -102,9 +103,11 @@ for folder_num in range(0, len(chan1_data)):
     deltas_stdevs.append(st_dev(deltas))
 
 
-print('Found. Getting velocities...')
+print('Found. Getting velocities with uncertainties...')
 
 vs = []
+u_vs = []
+u_s = 0.01e-2  # in m
 length1 = 9.42  # cm
 length2 = 4.82  # cm
 
@@ -112,17 +115,27 @@ for folder_num in range(0, len(chan1_data)):
 
     print(data_folders[folder_num])
 
+    s = 0
+
     if data_folders[folder_num].split(os.sep).pop()[0] == '1':
-        vs.append(length1 / avg_deltas[folder_num])
+        s = length1
     else:
-        vs.append(length2 / avg_deltas[folder_num])
+        s = length2
+
+    vs.append(s / avg_deltas[folder_num])
+    u_vs.append(
+        sqrt((u_s / avg_deltas[folder_num]) ** 2 + (s * deltas_stdevs[folder_num] / (avg_deltas[folder_num] ** 2)) ** 2)
+    )
+
 
 print('Got. Initializing dictionary...')
 
 plot_dict = dict()
+uncertainties_dict = dict()
 
 for i in range(400, 3100, 100):
     plot_dict[i] = []
+    uncertainties_dict[i] = []
 
 print('Adding velocity data to dictionaries...')
 for folder_num in range(0, len(chan1_data)):
@@ -136,25 +149,59 @@ for folder_num in range(0, len(chan1_data)):
     V = int(V) * 1e2
 
     plot_dict[V].append(vs[folder_num])
-
-
-x = []
-y = []
-
-print('Averaging values in dict...')
-for val_list in plot_dict:
-    plot_dict[val_list] = sum(plot_dict[val_list]) / len(plot_dict[val_list])
-    # It's U in volts divided by 10 cm = 1e-2 m, which is the length of area with homogeneous electric field.
-    x.append((val_list / 1e-2))
-    # Velocity is not in cm / us thus it should be rescaled by 1e-2 / 1e-6 = 1e4
-    y.append(plot_dict[val_list] * 1e4)
+    uncertainties_dict[V].append(u_vs[folder_num])
 
 print(plot_dict)
+print(uncertainties_dict)
 
-plt.plot(x, y, 'ro')
+print('Averaging values in dicts...')
+for key in plot_dict:
+    plot_dict[key] = sum(plot_dict[key]) / len(plot_dict[key])
+    uncertainties_dict[key] = sum(uncertainties_dict[key]) / len(uncertainties_dict[key])
+
+print(plot_dict)
+print(uncertainties_dict)
+
+print('Getting data for plot...')
+x = []
+y = []
+u_v = []
+
+for key in plot_dict:
+    # plot_dict[key] = sum(plot_dict[key]) / len(plot_dict[key])
+    # It's U in volts divided by 10 cm = 1e-2 m, which is the length of area with homogeneous electric field.
+    x.append((key / 1e-1))
+    # Velocity is not in cm / us thus it should be rescaled by 1e-2 / 1e-6 = 1e4
+    y.append(plot_dict[key] * 1e4)
+    # Uncertainties are
+    u_v.append(uncertainties_dict[key] * 1e4)
+
+print('Counting uncertainties...')
+u_E = [10 for x_val in x]
+
+print('Counting trend line coeffs...')
+trend = np.polyfit(x=x, y=y, deg=2)
+
+a = float(trend[0])
+b = float(trend[1])
+c = float(trend[2])
+
+trend_y_vals = []
+trend_x_vals = []
+
+for x_val in range(3000, 31000):
+    trend_y_vals.append(a * (x_val * x_val) + b * x_val + c)
+    trend_x_vals.append(x_val)
+
+print('Plotting...')
+
+print(u_vs)
+print(u_E)
+
+plt.errorbar(x, y, xerr=u_E, yerr=u_v, fmt='o')
+plt.plot(trend_x_vals, trend_y_vals)
 plt.ylabel('v (m / s)')
 plt.xlabel('E (V / m)')
 plt.show()
 
-
-
+print('Finished.')
