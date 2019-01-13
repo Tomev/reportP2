@@ -2,7 +2,7 @@ from PointData import P2Point, LineParts
 import os
 import glob
 import numpy as np
-from math import sqrt
+from math import sqrt, ceil
 import matplotlib.pyplot as plt
 
 
@@ -101,6 +101,31 @@ for folder_num in range(0, len(chan1_data)):
     print(f'delta = {avg_deltas[len(avg_deltas) -1]}')
     deltas_stdevs.append(st_dev(deltas))
 
+folder_parts = []
+for folder_name in data_folders:
+    folder_parts.append(folder_name.split('\\')[2])
+print(folder_parts)
+
+print(len(folder_parts))
+
+for i in range(len(avg_deltas)):
+    avg_deltas[i] = ceil(avg_deltas[i] / 0.01) * 0.01
+    deltas_stdevs[i] = ceil(deltas_stdevs[i] / 0.01) * 0.01
+print(avg_deltas)
+print(deltas_stdevs)
+
+avg_delta_table = ''
+for i in range(len(avg_deltas)):
+    avg_delta_table += str(avg_deltas[i])[:5] + '&'
+print(avg_delta_table)
+
+print(len(avg_deltas))
+
+avg_delta_u_table = ''
+
+for i in range(len(deltas_stdevs)):
+    avg_delta_u_table += str(deltas_stdevs[i])[:5] + '&'
+print(avg_delta_u_table)
 
 print('Found. Getting velocities with uncertainties...')
 
@@ -126,6 +151,15 @@ for folder_num in range(0, len(chan1_data)):
         sqrt((u_s / avg_deltas[folder_num]) ** 2 + (s * deltas_stdevs[folder_num] / (avg_deltas[folder_num] ** 2)) ** 2)
     )
 
+v_string = ''
+uv_string = ''
+
+for i in range(len(vs)):
+    v_string += str(vs[i])[:5] + '&'
+    uv_string += str(u_vs[i])[:5] + '&'
+
+print(v_string)
+print(uv_string)
 
 print('Got. Initializing dictionary...')
 
@@ -178,8 +212,15 @@ for key in plot_dict:
 print('Counting uncertainties...')
 u_E = [10 for x_val in x]
 
+print('Rounding values...')
+for i in range(len(u_v)):
+    u_v[i] = round(u_v[i])
+    x[i] = ceil(x[i] / 100) * 100
+    y[i] = ceil(y[i] / 100) * 100
+    u_v[i] = ceil(u_v[i] / 100) * 100
+
 print('Counting trend line coeffs...')
-trend = np.polyfit(x=x, y=y, deg=2)
+trend, cov = np.polyfit(x=x, y=y, deg=2, cov=True)
 
 a = float(trend[0])
 b = float(trend[1])
@@ -192,10 +233,38 @@ for x_val in range(3000, 31000):
     trend_y_vals.append(a * (x_val * x_val) + b * x_val + c)
     trend_x_vals.append(x_val)
 
+print(trend)
+
+for el in np.diag(cov):
+    print(sqrt(el))
+
 print('Plotting...')
 
-print(u_vs)
+print('=======================================')
+print(x)
+print(y)
+print(u_v)
 print(u_E)
+print('=======================================')
+
+x_string = ''
+y_string = ''
+
+for i in range(len(y)):
+    x_string += str(x[i]) + '&'
+    y_string += '$' + str(int(str(y[i]).split('.')[0])/1000.0) + '\pm' + str(u_v[i] / 1000.0) + '$&'
+
+print(x_string)
+print(y_string)
+
+chi = 0
+
+for i in range(len(x)):
+    chi += ((y[i] - (a * x[i]**2 + b * x[i] + c)) / u_v[i])**2
+
+chi /= len(x) - 1
+print(f'chi = {chi}')
+
 
 plt.errorbar(x, y, xerr=u_E, yerr=u_v, fmt='o')
 plt.plot(trend_x_vals, trend_y_vals)
